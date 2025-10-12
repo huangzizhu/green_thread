@@ -203,7 +203,7 @@ void green_yield();
 
 ## 📝 博客 & 坑记
 实战细节、ABI 踩坑、汇编调试笔记后续将在下方更新：  
-👉 [【你的博客地址】](https://your-blog.com) （持续更新中）
+👉 [【博客地址】](https://blog.huangzizhu.com/index.php/archives/24/) （持续更新中）
 
 ---
 
