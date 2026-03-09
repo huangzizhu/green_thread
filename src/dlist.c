@@ -29,7 +29,7 @@ dlist* create_dlist()
     dlist* list = calloc(1,sizeof(dlist));
     if (!list)
     {
-        perror("calloc");
+        fprintf(stderr, "calloc: out of memory\n");
         return NULL;
     }
     dlist_init(list);
@@ -115,3 +115,6 @@ size_t len(dlist* list)
     if (!list) return 0;
     return list->size;
 }
+
+int is_empty(dlist* list){return list->size == 0;}
+

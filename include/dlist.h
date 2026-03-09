@@ -19,6 +19,8 @@ typedef struct  dlist_node_t
     struct dlist_node_t* prev;
 }dlist_node;
 
+typedef enum { ST_DEAD, ST_RUNNING, ST_READY, ST_BLOCK } tcb_state;
+
 typedef struct dlist
 {
     size_t size;
@@ -36,5 +38,5 @@ dlist_node* remove_tail(dlist* list);
 dlist_node* get_head(dlist* list);
 dlist_node* get_tail(dlist* list);
 size_t len(dlist* list);
-
+int is_empty(dlist* list);
 #endif //DLIST_H

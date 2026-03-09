@@ -14,16 +14,16 @@
 #include <stdalign.h>
 
 
-typedef struct task_control_block
+struct task_control_block
 {
-    enum { ST_DEAD, ST_RUNNING, ST_READY }      state;//状态
+    tcb_state                                   state;//状态
     uint64_t                                    tid;//tid
     fcontext_t                                  ctx;//跳转上下文
     void*                                       stack;//分配的栈空间的地址+STACK_SIZE
     dlist_node                                  node;//嵌入式链表的指针
     task_fuc_t                                  func;//要调用的函数
     void*                                       arg;//参数
-}tcb_t;
+};
 
 struct green_thread_scheduler
 {
@@ -33,6 +33,7 @@ struct green_thread_scheduler
 static __thread tcb_t* curr = NULL;//当前进行协程，线程级全局变量
 static __thread green_t* scheduler = NULL;//线程唯一调度器，线程级全局变量
 green_t* get_scheduler(){return scheduler;}
+fcontext_t get_scheduler_ctx(){return scheduler->ctx;}
 void set_scheduler(green_t* s){scheduler = s;}
 tcb_t* get_curr() {return curr;}
 void set_curr(tcb_t* t) {curr = t;}
@@ -40,13 +41,13 @@ void set_curr(tcb_t* t) {curr = t;}
 
 void handle_no_scheduler()
 {
-    perror("no scheduler");
+    fprintf(stderr, "no scheduler\n");
     exit(-1);
 }
 
 void handle_no_curr()
 {
-    perror("no current task");
+    fprintf(stderr, "no scheduler\n");
     exit(-1);
 }
 
@@ -55,6 +56,12 @@ void free_tcb(tcb_t* tcb)
     if (!tcb) return;
     munmap(tcb->stack - STACK_SIZE,STACK_SIZE);
     free(tcb);
+}
+
+void set_tcb_state(tcb_t* tcb, tcb_state state)
+{
+    if (!tcb) return;
+    tcb->state = state;
 }
 
 tcb_t* pop_task()
@@ -88,7 +95,7 @@ void* create_stack_space()
         -1,0);
     if (stack_space == MAP_FAILED)
     {
-        perror("mmap");
+        fprintf(stderr, "mmap failed\n");
         exit(-1);
     }
     mprotect(stack_space, 4096, PROT_NONE);
@@ -140,7 +147,7 @@ uint64_t add_task(task_fuc_t fuc, void* arg)
     tcb_t* tcb = malloc(sizeof(tcb_t));
     if (tcb == NULL)
     {
-        perror("malloc");
+        fprintf(stderr, "malloc failed\n");
         exit(-1);
     }
     //tcb初始化
@@ -180,7 +187,7 @@ green_t* create_scheduler()
         scheduler = malloc(sizeof(green_t));
         if (!scheduler)
         {
-            perror("malloc");
+            fprintf(stderr, "malloc failed\n");
             exit(-1);
         }
     }
@@ -227,4 +234,10 @@ void green_run()
             return;
         }
     }
+}
+
+void add_ready_task(tcb_t* tcb)
+{
+    tcb->state = ST_READY;
+    push_task(tcb);
 }

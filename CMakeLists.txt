@@ -11,6 +11,8 @@ add_library(co_context STATIC
         src/cocontrol.S
         src/dlist.c
         src/scheduler.c
+        src/channel.c
+        include/channel.h
 )
 target_compile_options(co_context PRIVATE
         -Wall -Wextra -O2 -g
