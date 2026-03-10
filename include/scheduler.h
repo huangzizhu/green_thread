@@ -11,7 +11,7 @@
 #include "context.h"
 
 enum {STACK_SIZE = 256 * 1024u};
-
+typedef enum { ST_DEAD, ST_RUNNING, ST_READY, ST_BLOCK } tcb_state;
 typedef void(*task_fuc_t)(void* arg);
 typedef struct task_control_block tcb_t;
 typedef struct green_thread_scheduler green_t;

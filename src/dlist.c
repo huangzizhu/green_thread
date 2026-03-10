@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define offsetof(TYPE, MEMBER)  __builtin_offsetof(TYPE, MEMBER)
 
 
 void dlist_init(dlist* list)

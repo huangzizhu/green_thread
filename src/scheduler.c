@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <stdalign.h>
 
+#include "test/utils.h"
+
 
 struct task_control_block
 {
@@ -224,8 +226,9 @@ void green_run()
     {
         if (next_task())//结束或者yield回来了
         {
-            if (curr->state) push_task(curr);//task尚未结束
-            else free_tcb(curr);//已经结束
+            if (curr->state == ST_READY) push_task(curr);//task尚未结束且未阻塞
+            else if (curr->state == ST_DEAD) free_tcb(curr);//已经结束
+            //阻塞的task不放回就绪队列，等待外部事件唤醒
         }
         else
         {

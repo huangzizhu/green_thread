@@ -19,7 +19,7 @@ typedef struct  dlist_node_t
     struct dlist_node_t* prev;
 }dlist_node;
 
-typedef enum { ST_DEAD, ST_RUNNING, ST_READY, ST_BLOCK } tcb_state;
+
 
 typedef struct dlist
 {

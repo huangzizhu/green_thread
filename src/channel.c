@@ -21,7 +21,7 @@ typedef struct rqueue
     size_t len;
     size_t head;
     size_t tail;
-    void* data;
+    char* data;
 }rqueue_t;
 
 typedef rqueue_t buf_t;
@@ -33,37 +33,40 @@ struct channel
     dlist recv_list;
 };
 
+
 typedef struct waiter
 {
     tcb_t* tcb;
-    void* data;
+    char* data;
     dlist_node node;
 }waiter_t;
 
-
+//创建一个环形队列
 rqueue_t* rq_new(size_t elem_size, size_t cap)
 {
-    rqueue_t* rqueue = calloc(1,sizeof(rqueue_t));
-    if (!rqueue)
-    {
-        fprintf(stderr, "calloc: out of memory\n");
-        exit(-1);
-    }
     void* data = calloc(cap,elem_size);
     if (!data)
     {
         fprintf(stderr, "calloc: out of memory\n");
         exit(-1);
     }
+    rqueue_t* rqueue = calloc(1,sizeof(rqueue_t));
+    if (!rqueue)
+    {
+        fprintf(stderr, "calloc: out of memory\n");
+        exit(-1);
+    }
+
     rqueue->data = data;
     rqueue->cap = cap;
     rqueue->elem_size = elem_size;
     return rqueue;
 }
-void rq_destroy(rqueue_t* rqueue)
+static inline void rq_destroy(rqueue_t* rqueue)
 {
-    free(rqueue->data);
+    if (rqueue->data)  free(rqueue->data);
 }
+//初始化已有的rq
 void rq_init(rqueue_t* rqueue, size_t elem_size, size_t cap)
 {
     void* data = calloc(cap,elem_size);
@@ -79,8 +82,8 @@ void rq_init(rqueue_t* rqueue, size_t elem_size, size_t cap)
     rqueue->head = 0;
     rqueue->tail = 0;
 }
-int rq_empty(rqueue_t* rqueue){return rqueue->len == 0;}
-int rq_full(rqueue_t* rqueue){return rqueue->len == rqueue->cap;}
+static inline int rq_empty(rqueue_t* rqueue){return rqueue->len == 0;}
+static inline int rq_full(rqueue_t* rqueue){return rqueue->len == rqueue->cap;}
 
 void rq_enqueue(rqueue_t* rqueue, void* data)
 {
@@ -95,7 +98,7 @@ void rq_enqueue(rqueue_t* rqueue, void* data)
     rqueue->len++;
 }
 
-int is_buffer(channel_t chan){return chan->buf.cap != 0;}
+static inline int is_buffer(channel_t chan){return chan->buf.cap != 0;}
 
 void* rq_dequeue(rqueue_t* rqueue)
 {
@@ -160,22 +163,31 @@ void send_channel(channel_t channel, void* data)
         if (rq_full(&channel->buf))
         {
             //满了阻塞
-            add_waiter(&channel->recv_list,data);
+            add_waiter(&channel->send_list,data);
             //回到调度器
-            jump_fcontext(get_scheduler_ctx(),NULL);
-            assert(1);
+            green_yield();
+            //唤醒后，recv在唤醒的时候已经帮忙塞进去了，直接离开
+            return;
         }
-        //没有满，交货，返回
+        //没有满，交货
         rq_enqueue(&channel->buf,data);
+        //如果有recv阻塞，唤醒一个
+        if (!is_empty(&channel->recv_list))
+        {
+            waiter_t* recv = remove_waiter(&channel->recv_list);
+            add_ready_task(recv->tcb);
+            memcpy(recv->data,rq_dequeue(&channel->buf),channel->buf.elem_size);
+            free(recv);
+        }
         return;
     }
     //无缓冲
-    if (is_empty(&channel->send_list))
+    if (is_empty(&channel->recv_list))
     {
         //如果没有recv，阻塞
         add_waiter(&channel->send_list,data);
-        jump_fcontext(get_scheduler_ctx(),NULL);
-        assert(1);
+        green_yield();
+        return;
     }
     //有recv，交货
     waiter_t* recv = remove_waiter(&channel->recv_list);
@@ -198,11 +210,65 @@ void recv_channel(channel_t channel, void* data)
     if (is_buffer(channel))
     {
         //有缓冲
-        if (is_empty(&channel->send_list))
+        if (rq_empty(&channel->buf))
         {
-            //
+            //空的，阻塞
+            add_waiter(&channel->recv_list,data);
+            //回到调度器
+            green_yield();
+            return;
         }
+        //不空，拿货
+        void* buf_data = rq_dequeue(&channel->buf);
+        memcpy(data,buf_data,channel->buf.elem_size);
+        //如果有send阻塞，唤醒一个
+        if (!is_empty(&channel->send_list))
+        {
+            waiter_t* send = remove_waiter(&channel->send_list);
+            rq_enqueue(&channel->buf,send->data);
+            add_ready_task(send->tcb);
+            free(send);
+        }
+        return;
     }
+    //无缓冲
+    if (is_empty(&channel->send_list))
+    {
+        //如果没有发送者，阻塞
+        add_waiter(&channel->recv_list,data);
+        //回到调度器
+        green_yield();
+        return;
+    }
+
+   //有发送者，拿货
+    waiter_t* send = remove_waiter(&channel->send_list);
+    //复制数据
+    memcpy(data,send->data,channel->buf.elem_size);
+    //唤醒发送者
+    add_ready_task(send->tcb);
+    free(send);
 }
+
+//返回值 1 成功销毁， 0 失败（如队列非空），-1 参数错误
+int destroy_channel(channel_t channel)
+{
+    if (!channel) return -1;
+    int safe_to_destroy =
+        is_empty(&channel->recv_list) &&
+            is_empty(&channel->send_list) &&
+                rq_empty(&channel->buf);
+    if (safe_to_destroy)
+    {
+        //两个dlist都不能free
+        //destroy_dlist(&channel->recv_list);
+        //destroy_dlist(&channel->send_list);
+        rq_destroy(&channel->buf);
+        free(channel);
+        return 1;
+    }
+    return 0;
+}
+
 
 
