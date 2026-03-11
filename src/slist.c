@@ -68,4 +68,4 @@ void* remove_head(slist_t* slist)
     free(node);
     return data;
 }
-
+extern inline int slist_is_empty(slist_t* slist){return slist->size == 0;}

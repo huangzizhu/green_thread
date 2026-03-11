@@ -22,6 +22,6 @@ slist_t* slist_create();
 void slist_destroy(slist_t* list);
 void slist_insert_head(slist_t* slist, void* data);
 void* slist_remove_head(slist_t* slist);
-static inline int slist_is_empty(slist_t* slist){return slist->size == 0;}
+extern inline int slist_is_empty(slist_t* slist);
 
 #endif //GREEN_THREAD_SLLIST_H
