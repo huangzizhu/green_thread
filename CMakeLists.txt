@@ -18,6 +18,10 @@ add_library(co_context STATIC
         include/channel.h
         src/test/utils.c
         src/test/utils.h
+        src/sllist.c
+        include/sllist.h
+        src/hash_map.c
+        include/hash_map.h
 )
 #编译选项
 target_compile_options(co_context PRIVATE
