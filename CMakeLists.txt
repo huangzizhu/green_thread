@@ -37,13 +37,14 @@ add_executable(test_dlist
 
         src/test/test_dlist.c)
 add_executable(test_scheduler
-
         src/test/test_scheduler.c)
 add_executable(test_channel src/test/test_channel.c
 )
 
+add_executable(test_slist src/test/test_slist.c)
 #链接库
 target_link_libraries(test_dlist PRIVATE co_context)
 target_link_libraries(test_scheduler PRIVATE co_context)
 target_link_libraries(test_channel PRIVATE co_context)
+target_link_libraries(test_slist PRIVATE co_context)
 

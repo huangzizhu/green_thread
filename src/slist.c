@@ -11,9 +11,7 @@ slist_node* slist_node_create(void* data)
 {
     slist_node* node = (slist_node*)malloc(sizeof(slist_node));
     if (node == NULL)
-    {
         return NULL;
-    }
     node->data = data;
     node->next = NULL;
     return node;
@@ -23,9 +21,7 @@ slist_t* slist_create()
 {
     slist_t* list = (slist_t*)malloc(sizeof(slist_t));
     if (list == NULL)
-    {
         return NULL;
-    }
     list->size = 0;
     list->head = NULL;
     return list;
@@ -34,9 +30,7 @@ slist_t* slist_create()
 void slist_destroy(slist_t* list)
 {
     if (list == NULL)
-    {
         return;
-    }
     slist_node* current = list->head;
     while (current != NULL)
     {
@@ -47,7 +41,7 @@ void slist_destroy(slist_t* list)
     free(list);
 }
 
-void insert_head(slist_t* slist, void* data)
+void slist_insert_head(slist_t* slist, void* data)
 {
     if (!slist) return;
     slist_node* node = slist_node_create(data);
@@ -57,10 +51,9 @@ void insert_head(slist_t* slist, void* data)
     slist->size++;
 }
 
-void* remove_head(slist_t* slist)
+void* slist_remove_head(slist_t* slist)
 {
-    if (!slist) return NULL;
-    if (!slist->size) return NULL;
+    if (!slist || slist_is_empty(slist)) return NULL;
     slist_node* node = slist->head;
     slist->head = node->next;
     slist->size--;
@@ -68,4 +61,6 @@ void* remove_head(slist_t* slist)
     free(node);
     return data;
 }
-extern inline int slist_is_empty(slist_t* slist){return slist->size == 0;}
+inline int slist_is_empty(slist_t* slist){
+    return slist == NULL || slist->size == 0;
+}

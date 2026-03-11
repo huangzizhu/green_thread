@@ -46,12 +46,12 @@ void hm_insert_(slist_t** new_buckets,slist_node* node,size_t new_cap)
     bucket->head = node;
 }
 
-void* hm_enlarge(hash_map_t* hm)
+void hm_enlarge(hash_map_t* hm)
 {
     //创建一个双倍的hashmap
     slist_t** new_buckets = calloc(hm->cap << 1, sizeof(slist_t*));
-    if (!new_buckets) return NULL;
-    hm->cap << 1;
+    if (!new_buckets) return;
+    hm->cap = hm->cap << 1;
     for (int i = 0 ; i < hm->cap ; ++i)
     {
         slist_t* list = hm->buckets[i];
